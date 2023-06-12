@@ -8,7 +8,6 @@ import (
 	"log"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/nats-io/stan.go"
 )
 
 func main() {
@@ -29,14 +28,14 @@ func main() {
 		log.Println("PostgreSQL connected")
 	}
 
-	conn, err := stan.Connect(
-		"test-cluster",
-		"testcv")
-	if err != nil {
-		log.Fatalf("Nats-streaming connected error: %s", err)
-	} else {
-		log.Println("Nats-streaming connected")
-	}
+	// conn, err := stan.Connect(
+	// 	"test-cluster",
+	// 	"testcv")
+	// if err != nil {
+	// 	log.Fatalf("Nats-streaming connected error: %s", err)
+	// } else {
+	// 	log.Println("Nats-streaming connected")
+	// }
 
 	defer func(psqlDB *sqlx.DB) {
 		err = psqlDB.Close()
@@ -47,7 +46,7 @@ func main() {
 		}
 	}(psqlDB)
 
-	s := server.NewServer(cfg, psqlDB, conn)
+	s := server.NewServer(cfg, psqlDB)
 	err = s.Run(context.Background())
 	if err != nil {
 		log.Fatalf("Cannot start server: %v", err)

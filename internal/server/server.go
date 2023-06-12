@@ -12,22 +12,19 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jmoiron/sqlx"
-	"github.com/nats-io/stan.go"
 )
 
 type Server struct {
 	fiber *fiber.App
 	cfg   *config.Config
 	pgDB  *sqlx.DB
-	nats  stan.Conn
 }
 
-func NewServer(cfg *config.Config, database *sqlx.DB, natsConn stan.Conn) *Server {
+func NewServer(cfg *config.Config, database *sqlx.DB) *Server {
 	return &Server{
 		fiber: fiber.New(fiber.Config{}),
 		cfg:   cfg,
 		pgDB:  database,
-		nats:  natsConn,
 	}
 }
 

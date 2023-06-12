@@ -13,4 +13,6 @@ type Handlers interface {
 	GetUsers() fiber.Handler
 	GetFriends() fiber.Handler
 	GetMesseges() fiber.Handler
+	GetFriendRequest() fiber.Handler
+	GetKey() fiber.Handler
 }

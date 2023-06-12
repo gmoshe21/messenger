@@ -4,9 +4,11 @@ import (
 	"Messege/config"
 	"Messege/internal/control"
 	"Messege/internal/models"
-	"sync"
-	"github.com/google/uuid"
 	"context"
+	"log"
+	"sync"
+
+	"github.com/google/uuid"
 )
 
 type controlUC struct {
@@ -59,3 +61,20 @@ func (c *controlUC) GetMesseges(ctx context.Context, author string, recipient st
 	return c.controlRepo.GetMesseges(ctx, author, recipient)
 }
 
+func (c *controlUC) GetFriendRequest(ctx context.Context, user string) (result []byte, err error) {
+	return c.controlRepo.GetFriendRequest(ctx, user)
+}
+
+func (c *controlUC) GetKey(ctx context.Context, author string, recipient string) (result []byte, err error) {
+	result, err = c.controlRepo.GetKey(ctx, author, recipient)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(1)
+	err = c.controlRepo.DeleteKey(ctx, author, recipient)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

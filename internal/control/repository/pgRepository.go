@@ -99,31 +99,62 @@ func (c *controlRepo) CreateMessege(ctx context.Context, params models.Messege) 
 }
 
 func (c *controlRepo) GetUsers(ctx context.Context) (result []byte, err error) {
-	err = c.db.GetContext(ctx, result, queryGetUsers)
+	err = c.db.GetContext(ctx, &result, queryGetUsers)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "controlRepo.GetUsers.ExecContext()")
+		return nil, errors.Wrap(err, "controlRepo.GetUsers.GetContext()")
 	}
 
 	return result, nil
 }
 
 func (c *controlRepo) GetFriends(ctx context.Context, uid string) (result []byte, err error) {
-	err = c.db.GetContext(ctx, result, queryGetUsers, uid)
+	err = c.db.GetContext(ctx, &result, queryGetFriends, uid)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "controlRepo.GetFriends.ExecContext()")
+		return nil, errors.Wrap(err, "controlRepo.GetFriends.GetContext()")
 	}
 
 	return result, nil
 }
 
 func (c *controlRepo) GetMesseges(ctx context.Context, author string, recipient string) (result []byte, err error) {
-	err = c.db.GetContext(ctx, result, queryGetUsers, author, recipient)
+	err = c.db.GetContext(ctx, &result, queryGetMesseges, author, recipient)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "controlRepo.GetMesseges.ExecContext()")
+		return nil, errors.Wrap(err, "controlRepo.GetMesseges.GetContext()")
 	}
 
 	return result, nil
 }
+
+func (c *controlRepo) GetFriendRequest(ctx context.Context, user string) (result []byte, err error) {
+	err = c.db.GetContext(ctx, &result, queryGetFriendRequest, user)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "controlRepo.GetFriendRequest.GetContext()")
+	}
+
+	return result, nil
+}
+
+func (c *controlRepo) GetKey(ctx context.Context, author string, recipient string) (result []byte, err error) {
+	err = c.db.GetContext(ctx, &result, queryGetKey, author, recipient)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "controlRepo.GetKey.GetContext()")
+	}
+
+	return result, nil
+}
+
+func (c *controlRepo) DeleteKey(ctx context.Context, author string, recipient string) error {
+	_, err := c.db.ExecContext(ctx, queryDeleteKey, author, recipient)
+
+	if err != nil {
+		return errors.Wrap(err, "controlRepo.queryDeleteKey.ExecContext()")
+	}
+
+	return nil
+}
+

@@ -123,4 +123,29 @@ func (ctrl *controlHandlers) GetMesseges() fiber.Handler {
 		return c.Send(result)
 	}
 }
+
+func (ctrl *controlHandlers) GetFriendRequest() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		user := c.Query("user")
+		result, err := ctrl.controlUC.GetFriendRequest(context.Background(), user)
+		if err != nil {
+			return err
+		}
+
+		return c.Send(result)
+	}
+}
+
+func (ctrl *controlHandlers) GetKey() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		author := c.Query("author")
+		recipient := c.Query("recipient")
+		result, err := ctrl.controlUC.GetKey(context.Background(), author, recipient)
+		if err != nil {
+			return err
+		}
+
+		return c.Send(result)
+	}
+}
                 

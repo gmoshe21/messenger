@@ -10,25 +10,30 @@ import (
 )
 
 const (
-	queryCreateTableUser = `CREATE TABLE IF NOT EXISTS user (
+	queryCreateTableUser = `CREATE TABLE IF NOT EXISTS users (
 		id 				SERIAL PRIMARY KEY,
 		uid 			VARCHAR(50),
     	name 			VARCHAR(50),
     	lastname 		VARCHAR(50),
     	number 			VARCHAR(50),
-    	mail 			VARCHAR(50),
+    	mail 			VARCHAR(50)
 	  );`
 	queryCreateTableCommunication = `CREATE TABLE IF NOT EXISTS communication (
 		id 				SERIAL PRIMARY KEY,
 		user1 			VARCHAR(50),
-    	room 			VARCHAR(50),
+    	room 			VARCHAR(50)
 	  );`
 	queryCreateTableMessege = `CREATE TABLE IF NOT EXISTS messege (
 		id 				SERIAL PRIMARY KEY,
 		author			VARCHAR(50),
 		recipient 		VARCHAR(50),
-		data 			VARCHAR(50),
-		time 			VARCHAR(200),
+		data 			VARCHAR(10000),
+		time 			timestamp 
+	  );`
+	queryCreateTableFriendRequest = `CREATE TABLE IF NOT EXISTS friend_request (
+		id 				SERIAL PRIMARY KEY,
+		user1 			VARCHAR(50),
+    	user2 			VARCHAR(50)
 	  );`
 )
 
@@ -52,6 +57,7 @@ func InitPsqlDB(ctx context.Context, cfg *config.Config) (*sqlx.DB, error) {
 	database.MustExec(queryCreateTableUser)
 	database.MustExec(queryCreateTableCommunication)
 	database.MustExec(queryCreateTableMessege)
+	database.MustExec(queryCreateTableFriendRequest)
 
 	return database, nil
 }
