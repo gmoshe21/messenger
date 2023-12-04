@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator"
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
 )
@@ -35,13 +35,13 @@ type Friend struct {
 	Key string `json:"key" validate:"required"`
 }
 
-func addUser(data models.User) {
+func addUser(data models.User) string {
 	reqTimeout := time.Duration(100) * time.Millisecond
 
 	reqUserBytes, _ := json.Marshal(data)
 
 	req := fasthttp.AcquireRequest()
-	req.SetRequestURI("http://localhost:8080/control/create_user")
+	req.SetRequestURI("http://localhost:8000/api/auth/register")
 	req.Header.SetMethod(fasthttp.MethodPost)
 	req.Header.SetContentTypeBytes([]byte("application/json"))
 	req.SetBodyRaw(reqUserBytes)
@@ -59,7 +59,7 @@ func addUser(data models.User) {
 			fmt.Fprintf(os.Stderr, "ERR conn failure: %v %v\n", errName, err)
 		}
 
-		return
+		return ""
 	}
 
 	statusCode := resp.StatusCode()
@@ -69,9 +69,16 @@ func addUser(data models.User) {
 	if statusCode != http.StatusOK {
 		fmt.Fprintf(os.Stderr, "ERR invalid HTTP response code: %d\n", statusCode)
 
-		return
+		return ""
 	}
 
+	var rec models.RegRec
+
+	err = json.Unmarshal(respBody, &rec)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
 	// respEntity := &Entity{}
 	// err = json.Unmarshal(respBody, respEntity)
 	// if err == nil || errors.Is(err, io.EOF) {
@@ -79,6 +86,7 @@ func addUser(data models.User) {
 	// } else {
 	// 	fmt.Fprintf(os.Stderr, "ERR failed to parse response: %v\n", err)
 	// }
+	return rec.Uid
 }
 
 func httpConnError(err error) (string, bool) {
@@ -119,7 +127,7 @@ func GetUsers() {
 				tmp := 0
 				for i := 0; i < len(users); i++ {
 					if users[i].Uid != clientData.Uid {
-						fmt.Printf("%d. %s %s\n", ind, users[i].Name, users[i].Lastname)
+						fmt.Printf("%d. %s\n", ind, users[i].Name)
 						ind++
 					} else {
 						tmp = i
@@ -196,7 +204,6 @@ func friendRequest(data models.FriendRequest) {
 
 func getKey(author string, recipient string) {
 	var messeges []models.Messege
-fmt.Println("getkey")
 
 	req := fasthttp.AcquireRequest()
 	req.SetRequestURI("http://localhost:8080/control/get_key")
@@ -207,17 +214,14 @@ fmt.Println("getkey")
 	err := client.Do(req, resp)
 	fasthttp.ReleaseRequest(req)
 	if err == nil {
-		fmt.Println("unmar")
 		err = json.Unmarshal(resp.Body(), &messeges)
 		if err == nil {
-			fmt.Println(clientData.Uid, clientData.Friends, author)
 				for i := 0; i < len(clientData.Friends); i++ {
 					if clientData.Friends[i].Uid == author {
 						clientData.Friends[i].Key = messeges[0].Data
 						break
 					}
 				}
-				fmt.Println("writetofile")
 				writeToFile()
 			} else {
 				fmt.Println(err)
@@ -243,7 +247,7 @@ func getFriends() {
 			if err == nil {
 				for i := 0; i < len(users); i++ {
 					if users[i].Uid != clientData.Uid {
-						fmt.Printf("%d. %s %s\n", i+1, users[i].Name, users[i].Lastname)
+						fmt.Printf("%d. %s\n", i+1, users[i].Name)
 					}
 				}
 			} else {
@@ -347,12 +351,15 @@ func getMessege(author string, recipient string, key string) {
 					return messeges[i].Time < messeges[j].Time
 				})
 				for i := 0; i < len(messeges); i++ {
-					fmt.Println(key)
-					str, err := Rsa.Decrypt(messeges[i].Data, key, "go")
-					if err != nil {
+					var str string
+					if messeges[i].Author == clientData.Uid {
+						str, err = Rsa.Decrypt(messeges[i].Data, clientData.SecKey, "go")
+					} else {
+						str, err = Rsa.Decrypt(messeges[i].Data, key, "go")
+					}
+						if err != nil {
 						fmt.Println(err)
 					}
-					fmt.Println("end")
 					fmt.Println("(", messeges[i].Time, ")", " ", messeges[i].Author, ": ", str)
 				}
 			} else {
@@ -393,7 +400,9 @@ func addMessege(data models.Messege) {
 
 	statusCode := resp.StatusCode()
 	respBody := resp.Body()
-	fmt.Printf("DEBUG Response: %s\n", respBody)
+	if string(respBody) != "OK" {
+		fmt.Printf("DEBUG Response: %s\n", respBody)
+	}
 
 	if statusCode != http.StatusOK {
 		fmt.Fprintf(os.Stderr, "ERR invalid HTTP response code: %d\n", statusCode)
@@ -417,7 +426,7 @@ func getFriendRequest() {
 			if err == nil {
 				for i := 0; i < len(users); i++ {
 					if users[i].Uid != clientData.Uid {
-						fmt.Printf("%d. %s %s\n", i+1, users[i].Name, users[i].Lastname)
+						fmt.Printf("%d. %s\n", i+1, users[i].Name)
 					}
 				}
 			} else {
@@ -456,7 +465,6 @@ func getFriendRequest() {
 		clientData.Friends = append(clientData.Friends, Friend {
 			Uid: users[command-1].Uid,
 		})
-		fmt.Println(clientData)
 		addMessege(models.Messege{
 			Author: clientData.Uid,
 			Recipient: users[command-1].Uid,
@@ -464,7 +472,7 @@ func getFriendRequest() {
 			Time:  time.Now().Format(time.RFC3339),
 		})
 
-		fmt.Println("\nЗапрос в друзья отправлен")
+		fmt.Println("\nДобавлен в друзья")
 	}
 }
 
@@ -532,16 +540,14 @@ func registers() {
 
 	fmt.Println("Регистрация\n Имя:")
 	fmt.Scan(&data.Name)
-	fmt.Println("Фамилия:\n")
-	fmt.Scan(&data.Lastname)
-	fmt.Println("Номер телефона:\n")
-	fmt.Scan(&data.Number)
 	fmt.Println("Почта:\n")
 	fmt.Scan(&data.Mail)
+	fmt.Println("Пароль:\n")
+	fmt.Scan(&data.Password)
 
-	data.Uid = uuid.New().String()
-	addUser(data)
-	clientData.Uid = data.Uid
+
+	clientData.Uid = addUser(data)
+	fmt.Println("uid:", clientData.Uid)
 
 
 	// Keys, _ := rsa.GenerateKey(rand.Reader, 256)
@@ -612,6 +618,165 @@ func checkRegist() bool {
 	return true
 }
 
+func log2FA() string {
+	reqTimeout := time.Duration(100) * time.Millisecond
+	
+	var data models.LoginUserInput
+	fmt.Println("Вход\n Email: ")
+	fmt.Scan(&data.Email)
+	fmt.Println("Пароль: ")
+	fmt.Scan(&data.Password)
+
+
+	reqUserBytes, _ := json.Marshal(data)
+
+	req := fasthttp.AcquireRequest()
+	req.SetRequestURI("http://localhost:8000/api/auth/login")
+	req.Header.SetMethod(fasthttp.MethodPost)
+	req.Header.SetContentTypeBytes([]byte("application/json"))
+	req.SetBodyRaw(reqUserBytes)
+
+	resp := fasthttp.AcquireResponse()
+	err := client.DoTimeout(req, resp, reqTimeout)
+	fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	if err != nil {
+		errName, known := httpConnError(err)
+		if known {
+			fmt.Fprintf(os.Stderr, "WARN conn error: %v\n", errName)
+		} else {
+			fmt.Fprintf(os.Stderr, "ERR conn failure: %v %v\n", errName, err)
+		}
+
+		return "err"
+	}
+
+	statusCode := resp.StatusCode()
+	respBody := resp.Body()
+	fmt.Printf("DEBUG Response: %s\n", respBody)
+
+	if statusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "ERR invalid HTTP response code: %d\n", statusCode)
+
+		return "err"
+	}
+	return ""
+}
+
+func otp2FA() (string, error) {
+	reqTimeout := time.Duration(100) * time.Millisecond
+	
+	var data models.OTPInput
+	var otp models.OTPRec
+	data.UserId = clientData.Uid
+
+
+	reqUserBytes, _ := json.Marshal(data)
+	fmt.Println(string(reqUserBytes))
+
+
+	req := fasthttp.AcquireRequest()
+	req.SetRequestURI("http://localhost:8000/api/auth/otp/generate")
+	req.Header.SetMethod(fasthttp.MethodPost)
+	req.Header.SetContentTypeBytes([]byte("application/json"))
+	req.SetBodyRaw(reqUserBytes)
+
+	resp := fasthttp.AcquireResponse()
+	err := client.DoTimeout(req, resp, reqTimeout)
+	fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	if err != nil {
+		errName, known := httpConnError(err)
+		if known {
+			fmt.Fprintf(os.Stderr, "WARN conn error: %v\n", errName)
+		} else {
+			fmt.Fprintf(os.Stderr, "ERR conn failure: %v %v\n", errName, err)
+		}
+
+		return "", err
+	}
+
+	statusCode := resp.StatusCode()
+	respBody := resp.Body()
+	fmt.Printf("DEBUG Response: %s\n", respBody)
+
+	err = json.Unmarshal(respBody, otp)
+	if err == nil {
+		return "", err
+	}
+
+	if statusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "ERR invalid HTTP response code: %d\n", statusCode)
+
+		return "", err
+	}
+	return otp.Base32, nil
+}
+
+func totp2FA() string {
+	reqTimeout := time.Duration(100) * time.Millisecond
+	
+	var data models.OTPInput
+	fmt.Println("Пароль: ")
+	fmt.Scan(&data.Token)
+	data.UserId = clientData.Uid
+
+
+	reqUserBytes, _ := json.Marshal(data)
+
+	req := fasthttp.AcquireRequest()
+	req.SetRequestURI("http://localhost:8000/api/auth/otp/verify")
+	req.Header.SetMethod(fasthttp.MethodPost)
+	req.Header.SetContentTypeBytes([]byte("application/json"))
+	req.SetBodyRaw(reqUserBytes)
+
+	resp := fasthttp.AcquireResponse()
+	err := client.DoTimeout(req, resp, reqTimeout)
+	fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	if err != nil {
+		errName, known := httpConnError(err)
+		if known {
+			fmt.Fprintf(os.Stderr, "WARN conn error: %v\n", errName)
+		} else {
+			fmt.Fprintf(os.Stderr, "ERR conn failure: %v %v\n", errName, err)
+		}
+
+		return "err"
+	}
+
+	statusCode := resp.StatusCode()
+	respBody := resp.Body()
+	fmt.Printf("DEBUG Response: %s\n", respBody)
+
+	if statusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "ERR invalid HTTP response code: %d\n", statusCode)
+
+		return "err"
+	}
+	return ""
+}
+
+func login() {
+	for {
+		if log2FA() == "" {
+			fmt.Println(14567890)
+			break
+		}
+	}
+
+	otp2FA()
+
+	for {
+		if totp2FA() == "" {
+			break
+		}
+	}
+}
+
 func main() {
 	readTimeout, _ := time.ParseDuration("500ms")
 	writeTimeout, _ := time.ParseDuration("500ms")
@@ -633,6 +798,9 @@ func main() {
 	if checkRegist() == false {
 		registers()
 	}
+	
+	login()
+
 	commands()
 }
 

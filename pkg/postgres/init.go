@@ -11,12 +11,10 @@ import (
 
 const (
 	queryCreateTableUser = `CREATE TABLE IF NOT EXISTS users (
-		id 				SERIAL PRIMARY KEY,
 		uid 			VARCHAR(50),
     	name 			VARCHAR(50),
-    	lastname 		VARCHAR(50),
-    	number 			VARCHAR(50),
-    	mail 			VARCHAR(50)
+    	email 			VARCHAR(50),
+    	password 		VARCHAR(50)
 	  );`
 	queryCreateTableCommunication = `CREATE TABLE IF NOT EXISTS communication (
 		id 				SERIAL PRIMARY KEY,

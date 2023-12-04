@@ -28,15 +28,6 @@ func main() {
 		log.Println("PostgreSQL connected")
 	}
 
-	// conn, err := stan.Connect(
-	// 	"test-cluster",
-	// 	"testcv")
-	// if err != nil {
-	// 	log.Fatalf("Nats-streaming connected error: %s", err)
-	// } else {
-	// 	log.Println("Nats-streaming connected")
-	// }
-
 	defer func(psqlDB *sqlx.DB) {
 		err = psqlDB.Close()
 		if err != nil {
@@ -51,5 +42,4 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cannot start server: %v", err)
 	}
-
 }

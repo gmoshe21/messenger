@@ -25,9 +25,7 @@ func (c *controlRepo) CreateUser(ctx context.Context, params models.User) error 
 		queryCreateUser,
 		params.Uid,
 		params.Name,
-		params.Lastname,
-		params.Number,
-		params.Mail,
+		params.Password,
 	)
 
 	if err != nil {
